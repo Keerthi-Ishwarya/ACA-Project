@@ -1,0 +1,182 @@
+#include "cache.h"
+
+#define maxRRPV 3
+#define THRESHOLD 0.25
+
+// Replacement state
+uint32_t l2_rrpv[L2C_SET][L2C_WAY];
+
+// RRIP leader statistics
+uint64_t rrip_instr_accesses = 0;
+uint64_t rrip_instr_misses = 0;
+uint64_t rrip_data_accesses = 0;
+uint64_t rrip_data_misses = 0;
+
+// I-RRIP leader statistics
+uint64_t irrip_instr_accesses = 0;
+uint64_t irrip_instr_misses = 0;
+uint64_t irrip_data_accesses = 0;
+uint64_t irrip_data_misses = 0;
+
+// Dynamic policy selection
+uint8_t use_irrip = 0;
+
+// Set classification
+#define RRIP_LEADER(set) ((set % 64) == 0)
+#define IRRIP_LEADER(set) ((set % 64) == 1)
+
+// Initialize replacement state
+void CACHE::l2c_initialize_replacement(){
+    std::cout << "==========================================" << std::endl;
+    std::cout << "Initializing Dynamic I-RRIP L2C" << std::endl;
+    std::cout << "==========================================" << std::endl;
+
+    rrip_instr_accesses = 0;
+    rrip_instr_misses = 0;
+    rrip_data_accesses = 0;
+    rrip_data_misses = 0;
+
+    irrip_instr_accesses = 0;
+    irrip_instr_misses = 0;
+    irrip_data_accesses = 0;
+    irrip_data_misses = 0;
+
+    use_irrip = 0;
+
+    for(int i = 0; i < L2C_SET; i++){
+        for(int j = 0; j < L2C_WAY; j++){
+            l2_rrpv[i][j] = maxRRPV;
+        }
+    }
+}
+
+
+// Find replacement victim
+uint32_t CACHE::l2c_find_victim(
+    uint32_t cpu,
+    uint64_t instr_id,
+    uint32_t set,
+    const BLOCK *current_set,
+    uint64_t ip,
+    uint64_t full_addr,
+    uint32_t type){
+        
+        // Prefer invalid blocks
+        for(int i = 0; i < L2C_WAY; i++){
+            if(!current_set[i].valid) return i;
+        }
+
+        // Determine policy
+        uint8_t instruction_priority;
+
+        if(RRIP_LEADER(set)) {
+            instruction_priority = 0;
+        }
+
+        else if (IRRIP_LEADER(set)) {
+            instruction_priority = 1;
+        }
+
+        else instruction_priority = use_irrip;
+
+        while(1) {
+
+            // I-RRIP : prefer evecting non-instruction blocks
+            if(instruction_priority) {
+                for(int i = 0; i < L2C_WAY; i++){
+                    if(l2_rrpv[set][i] == maxRRPV && current_set[i].instruction == 0) return i;
+                }
+            }
+
+            // Select any block at maximum RRPV
+            for(int i = 0; i < L2C_WAY; i++){
+                if(l2_rrpv[set][i] >= maxRRPV) return i;
+            }
+
+            // Age RRPVs
+            for(int i = 0; i < L2C_WAY; i++){
+                if(l2_rrpv[set][i] < maxRRPV) l2_rrpv[set][i]++;
+            }
+        }
+
+        assert(0);
+        return 0;
+}
+
+// Update replacement state
+void CACHE::l2c_update_replacement_state(
+    uint32_t cpu,
+    uint32_t set,
+    uint32_t way,
+    uint64_t full_addr,
+    uint64_t ip,
+    uint64_t victim_addr,
+    uint32_t type,
+    uint8_t hit,
+    uint8_t instruction)
+{
+    // Update statistics only for leader sets
+    if (RRIP_LEADER(set)) {
+        if(instruction) {
+            rrip_instr_accesses++;
+
+            if(!hit) rrip_instr_misses++;
+        }
+
+        else{
+            rrip_data_accesses++;
+
+            if(!hit) rrip_data_misses++;
+        }
+    }
+
+    else if (IRRIP_LEADER(set)){
+        if(instruction) {
+            irrip_instr_accesses++;
+            if(!hit) irrip_instr_misses++;
+        }
+        else {
+            irrip_data_accesses++;
+            if(!hit) irrip_data_misses++;
+        }
+    }
+
+    uint64_t instr_accesses = rrip_instr_accesses + irrip_instr_accesses;
+    uint64_t instr_misses = rrip_instr_misses + irrip_instr_misses;
+    uint64_t data_accesses = rrip_data_accesses + irrip_data_accesses;
+    uint64_t data_misses = rrip_data_misses + irrip_data_misses;
+    uint64_t total_accesses = instr_accesses + data_accesses;
+    uint64_t total_misses = instr_misses + data_misses;
+
+    uint64_t numerator = instr_accesses + instr_misses;
+    uint64_t denominator = total_accesses + total_misses;
+
+    if(denominator > 0) {
+        double score = (double)numerator / denominator;
+
+        if(score > THRESHOLD) use_irrip = 1;
+        else use_irrip = 0;
+    }
+
+    uint8_t instruction_priority;
+
+    if(RRIP_LEADER(set)) instruction_priority = 0;
+    else if (IRRIP_LEADER(set)) instruction_priority = 1;
+    else instruction_priority = use_irrip;
+
+    if(hit) {
+        if(instruction_priority && instruction) l2_rrpv[set][way];
+        else if(instruction_priority && !instruction) l2_rrpv[set][way] = 1;
+        else l2_rrpv[set][way] = 0;
+    }
+
+    else {
+        if(instruction_priority && instruction) l2_rrpv[set][way] = maxRRPV - 2;
+        else l2_rrpv[set][way] = maxRRPV - 1;
+    }
+}
+
+void CACHE::l2c_replacement_final_stats()
+{
+    
+}

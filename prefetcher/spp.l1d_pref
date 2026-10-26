@@ -1,0 +1,227 @@
+#include "cache.h"
+#include <cassert>
+
+#define SPP_TRACKER_COUNT 256
+#define PHT_SIZE 512
+#define RECENT_PREFETCH_SIZE 256
+#define EPOCH_ACCESSES 1024
+
+//class to track memory access patterns for individual Pointers
+class SPP_TRACKER {
+public:
+    uint64_t ip;
+    uint64_t last_cl_addr;
+    int64_t last_stride;
+
+    int uniform_confidence;
+    int64_t stride_hist[3];
+    uint32_t lru;
+
+    SPP_TRACKER () {
+        ip = 0;
+        last_cl_addr =0;
+        last_stride=0;
+        uniform_confidence =0;
+        for(int i=0; i<3; i++) stride_hist[i]=0;
+        lru =0;
+    };
+
+    //genetartes a 21-bit signature from the last 3 strides, mapped
+    uint32_t get_signature(){
+        uint32_t sig = ((stride_hist[0] & 0x7F) << 14) | ((stride_hist[1] & 0x7F) << 7) | (stride_hist[2] & 0x7F);
+        return sig%PHT_SIZE;
+    }
+};
+
+//pattern History table entry for non-uniform sequence predection
+class PHT_ENTRY {
+public:
+    int64_t next_stride;
+    PHT_ENTRY(){
+        next_stride=0;
+    }
+};
+
+SPP_TRACKER spp_trackers[SPP_TRACKER_COUNT];
+PHT_ENTRY pht[PHT_SIZE];
+
+uint64_t recent_prefetches[RECENT_PREFETCH_SIZE];
+int recent_prefetch_idx = 0;
+
+int spp_issued_prefetches =0;
+int spp_useful_prefetches =0;
+int spp_total_demand_accesses=0;
+int spp_current_degree=1;
+
+void CACHE::l1d_prefetcher_initialize() 
+{
+    std::cout << "------------------------------------------------" << std::endl;
+    std::cout << "        Stride Pattern Prefetcher (SPP)         " << std::endl;
+    std::cout << "------------------------------------------------" << std::endl;
+
+    for(int i=0; i<SPP_TRACKER_COUNT; i++){
+        spp_trackers[i].lru = i;
+    }
+    for (int i=0; i<RECENT_PREFETCH_SIZE; i++){
+        recent_prefetches[i]=0;
+    }
+}
+
+void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint8_t critical_ip_flag)
+{
+   uint64_t cl_addr = addr >> LOG2_BLOCK_SIZE;
+
+   //check if current demand access hits a recently issued prefetch
+    for(int i=0; i<RECENT_PREFETCH_SIZE; i++){
+        if(recent_prefetches[i]==cl_addr){
+            spp_useful_prefetches++;
+            recent_prefetches[i]=0;
+            break;
+        }
+    }
+
+    //epoch-based Accuracy throttling: scale aggressiveness based on usefulness
+    spp_total_demand_accesses++;
+    if(spp_total_demand_accesses>=EPOCH_ACCESSES){
+        if(spp_issued_prefetches>0){
+            float accuracy = (float)spp_useful_prefetches/spp_issued_prefetches;
+            if(accuracy>0.75) spp_current_degree = 4;
+            else if(accuracy>0.5) spp_current_degree = 3;
+            else if(accuracy > 0.25) spp_current_degree =2;
+            else spp_current_degree = 1; 
+        }
+        spp_issued_prefetches =0;
+        spp_useful_prefetches=0;
+        spp_total_demand_accesses =0;
+    }
+
+    //Find the SPP tracker for the current ip
+    int index =-1;
+    for(index=0; index<SPP_TRACKER_COUNT; index++){
+        if(spp_trackers[index].ip==ip) break;
+    }
+
+    //ip not found then allocate new entry using lru 
+    if(index == SPP_TRACKER_COUNT){
+        for(index=0; index<SPP_TRACKER_COUNT; index++){
+            if(spp_trackers[index].lru==(SPP_TRACKER_COUNT-1)) break;
+        }
+        spp_trackers[index].ip = ip;
+        spp_trackers[index].last_cl_addr=cl_addr;
+        spp_trackers[index].last_stride=0;
+        spp_trackers[index].uniform_confidence=0;
+
+        // Ensure stride history is cleared to prevent inheriting garbage data from evicted IP
+        spp_trackers[index].stride_hist[0] = 0;
+        spp_trackers[index].stride_hist[1] = 0;
+        spp_trackers[index].stride_hist[2] = 0;
+
+        for(int i=0; i<SPP_TRACKER_COUNT; i++){
+            if(spp_trackers[i].lru < spp_trackers[index].lru) spp_trackers[i].lru++;
+        }
+        spp_trackers[index].lru =0;
+        return;
+    }
+
+    int64_t stride = cl_addr - spp_trackers[index].last_cl_addr;
+    if(stride==0) return;
+
+    //update uniform stride confidence
+    if(stride==spp_trackers[index].last_stride){
+        spp_trackers[index].uniform_confidence++;
+        if(spp_trackers[index].uniform_confidence>3)spp_trackers->uniform_confidence=3;
+    }
+    else{
+        spp_trackers[index].uniform_confidence--;
+        if(spp_trackers[index].uniform_confidence <0) spp_trackers[index].uniform_confidence=0;
+    }
+
+    //update PHT with the previous signature mapping to the newly observed stride
+    uint32_t prev_sig = spp_trackers[index].get_signature();
+    pht[prev_sig].next_stride = stride;
+
+    //shift stride history
+    spp_trackers[index].stride_hist[0] = spp_trackers[index].stride_hist[1];
+    spp_trackers[index].stride_hist[1]= spp_trackers[index].stride_hist[2];
+    spp_trackers[index].stride_hist[2]= stride;
+
+    //issue prefetches based on confidence
+    if(spp_trackers[index].uniform_confidence>=2){
+        //uniform pattern path
+        uint64_t curr_pf_cl = cl_addr;
+        for (int i=0; i<spp_current_degree; i++) {
+            curr_pf_cl += spp_trackers[index].last_stride;
+
+            //don not cross os page boundary (4KB)
+            if ((curr_pf_cl >> (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)) != (cl_addr >> (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)))
+                break;
+            
+            uint64_t pf_address = curr_pf_cl << LOG2_BLOCK_SIZE;
+            
+            //issue to l1 if MSHR is not congested, else push to l2
+            if (MSHR.occupancy < (MSHR.SIZE>>1))
+                prefetch_line(ip, addr, pf_address, FILL_L1, 0);
+            else
+                prefetch_line(ip, addr, pf_address, FILL_L2, 0);
+            
+            spp_issued_prefetches++;
+            recent_prefetches[recent_prefetch_idx] = curr_pf_cl;
+            recent_prefetch_idx = (recent_prefetch_idx + 1) % RECENT_PREFETCH_SIZE;
+        }
+    } else{
+        //non-uniform pattern fallback path
+        uint32_t current_sig = spp_trackers[index].get_signature();
+        uint64_t curr_pf_cl = cl_addr;
+        
+        //use temporary history to generate multi-lookahead sequences without corrupting tracker state
+        int64_t temp_hist[3] = {spp_trackers[index].stride_hist[0], spp_trackers[index].stride_hist[1], spp_trackers[index].stride_hist[2]};
+        
+        for (int i=0; i<spp_current_degree; i++) {
+            int64_t pred_stride = pht[current_sig].next_stride;
+            if (pred_stride == 0) break; 
+            
+            curr_pf_cl += pred_stride;
+            if ((curr_pf_cl >> (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)) != (cl_addr >> (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)))
+                break;
+                
+            uint64_t pf_address = curr_pf_cl << LOG2_BLOCK_SIZE;
+            
+            if (MSHR.occupancy < (MSHR.SIZE>>1))
+                prefetch_line(ip, addr, pf_address, FILL_L1, 0);
+            else
+                prefetch_line(ip, addr, pf_address, FILL_L2, 0);
+                
+            spp_issued_prefetches++;
+            recent_prefetches[recent_prefetch_idx] = curr_pf_cl;
+            recent_prefetch_idx = (recent_prefetch_idx + 1) % RECENT_PREFETCH_SIZE;
+            
+            //update temporary history to calculate the next sequence signature
+            temp_hist[0] = temp_hist[1];
+            temp_hist[1] = temp_hist[2];
+            temp_hist[2] = pred_stride;
+            current_sig = ((temp_hist[0] & 0x7F) << 14) | ((temp_hist[1] & 0x7F) << 7) | (temp_hist[2] & 0x7F);
+            current_sig = current_sig % PHT_SIZE;
+        }
+    }
+
+    //updates state for the next access
+    spp_trackers[index].last_cl_addr = cl_addr;
+    spp_trackers[index].last_stride = stride;
+
+    //update lru
+    for (int i=0; i<SPP_TRACKER_COUNT; i++) {
+        if (spp_trackers[i].lru < spp_trackers[index].lru)
+            spp_trackers[i].lru++;
+    }
+    spp_trackers[index].lru = 0;
+}
+
+void CACHE::l1d_prefetcher_cache_fill(uint64_t v_addr, uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t v_evicted_addr, uint64_t evicted_addr, uint32_t metadata_in)
+{
+	return; //metadata_in;
+}
+
+void CACHE::l1d_prefetcher_final_stats()
+{
+    std::cout<<"SPP Final Stats: Degree=" << spp_current_degree<<std::endl;
+}
