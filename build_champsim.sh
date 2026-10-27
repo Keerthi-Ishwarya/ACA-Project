@@ -6,19 +6,21 @@ if [ "$#" -lt 3 ]; then
     echo " ERROR: Invalid number of arguments supplied."
     echo "======================================================================="
     echo
-    echo "Usage: ./build_champsim.sh <L1d Prefetcher> <L2C Replacement Policy> <binary name>"
+    echo "Usage: ./build_champsim.sh <L1d Prefetcher> <L2C Replacement Policy> <binary name> [num_core]"
     echo
     echo "L1d Prefetchers:"
     echo "  1) IP Stride"
-    echo "  2) PA2 Prefetcher"
-    echo "  3) No Prefetcher"
+    echo "  2) PA2 Prefetcher (spp)"
+    echo "  3) No Prefetcher (no)"
     echo
     echo "L2 Replacement Policies:"
-    echo "  1) LRU"
-    echo "  2) DCLIP"
+    echo "  1) LRU (lru)"
+    echo "  2) DCLIP (dyn_irrip)"
+    echo
+    echo "num_core:1 (default),2,4.."
     echo
     echo "Example:"
-    echo "  ./build_champsim.sh ip_stride lru baseline"
+    echo "  ./build_champsim.sh no lru baseline_4c 4"
     echo
     echo "======================================================================="
     exit 1
@@ -44,7 +46,7 @@ DTLB_REPLACEMENT="lru"   # DTLB replacement
 STLB_REPLACEMENT="lru"   # STLB replacement
 
 BINARY_NAME=$3
-NUM_CORE=1        # tested up to 8-core system
+NUM_CORE=${4:-1}       # tested up to 8-core system
 
 ############## Some useful macros ###############
 BOLD=$(tput bold)

@@ -985,7 +985,7 @@ int main(int argc, char** argv)
     uint32_t seed_number = 0;
 
     // check to see if knobs changed using getopt_long()
-    int c, index;
+    int c, index=0;
     while (1) {
         static struct option long_options[] =
         {
@@ -1377,7 +1377,7 @@ int main(int argc, char** argv)
     // simulation entry point
     start_time = time(NULL);
     uint8_t run_simulation = 1;
-    int cs_index = 0;
+    int cs_index = (knob_context_switch) ? 0: -1;
     while (run_simulation) {
 
         uint64_t elapsed_second = (uint64_t)(time(NULL) - start_time),
