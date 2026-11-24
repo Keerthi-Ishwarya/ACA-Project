@@ -21,12 +21,12 @@ L1I has LRU replacement policy
 L1D has LRU replacement policy
 L2C has LRU replacement policy
 LLC has LRU replacement policy
-Heartbeat CPU 0 instructions: 10000000 cycles: 2902847 heartbeat IPC: 3.44489 cumulative IPC: 3.44489 (Simulation time: 0 hr 0 min 41 sec) 
+Heartbeat CPU 0 instructions: 10000000 cycles: 2902847 heartbeat IPC: 3.44489 cumulative IPC: 3.44489 (Simulation time: 0 hr 0 min 35 sec) 
 
-Warmup complete CPU 0 instructions: 10000004 cycles: 2902848 (Simulation time: 0 hr 0 min 41 sec) 
+Warmup complete CPU 0 instructions: 10000004 cycles: 2902848 (Simulation time: 0 hr 0 min 35 sec) 
 
-Heartbeat CPU 0 instructions: 20000002 cycles: 12875090 heartbeat IPC: 1.00278 cumulative IPC: 1.00278 (Simulation time: 0 hr 1 min 25 sec) 
-Finished CPU 0 instructions: 10000002 cycles: 9972243 cumulative IPC: 1.00278 (Simulation time: 0 hr 1 min 25 sec) 
+Heartbeat CPU 0 instructions: 20000002 cycles: 12875090 heartbeat IPC: 1.00278 cumulative IPC: 1.00278 (Simulation time: 0 hr 1 min 16 sec) 
+Finished CPU 0 instructions: 10000002 cycles: 9972243 cumulative IPC: 1.00278 (Simulation time: 0 hr 1 min 16 sec) 
 
 ChampSim completed all CPUs
 
@@ -187,8 +187,8 @@ Stores Generated: 702056
 Stores sent to L1D: 702056
 Major fault: 0 Minor fault: 2828
 Allocated PAGES: 2828
-CPU 0 BP-SPP Final Stats: Degree=4 Demands=1821861 Prefetches=1135316 Prefetch_Fraction=0.383919
-  Band-Pass Filter Details: Candidate=2576444 Issued=2576444 HP_Dropped=0 LP_Dropped=0 Epochs_InBand=3830 Epochs_HP=0 Epochs_LP=0
+CPU 0 BP-SPP Final Stats: Degree=4 Demands=1821861 Prefetches=1135316 Prefetch_Fraction=0.383919 Useful=650851 Accuracy=0.573277
+  Band-Pass Filter Details: Candidate=1135316 Issued=1135316 HP_Dropped=0 LP_Dropped=0 Epochs_InBand=111 Epochs_HP=0 Epochs_LP=0
 
 LLC Eviction Statistics:
 CPU 0 LLC Evictions: TOTAL:      46919 SAME_CORE:      46919 CROSS_CORE_CAUSED:          0 CROSS_CORE_SUFFERED:          0
