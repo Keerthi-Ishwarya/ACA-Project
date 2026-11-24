@@ -1,10 +1,10 @@
 #!/bin/bash
-# Usage: bash run2.sh [parallel_jobs] [setups...]     e.g.  bash run2.sh 4 baseline spp_fixed spp
+# Usage: bash run2.sh [parallel_jobs] [setups...]     e.g.  bash run2.sh 4 baseline spp_fixed spp spp_bandpass
 # Reads traces.txt (label path) and mixes2.txt (four labels per line).
 # Writes results_ckpt2/alone_<setup>_<label>.txt and results_ckpt2/mix<k>_<setup>.txt.
-# Safe to run again: finished runs are skipped.
+# Safe to run again: finished runs with counters are skipped. Set FORCE=1 to rerun all.
 P=${1:-4}; shift
-SETUPS=${*:-baseline spp_fixed spp}
+SETUPS=${*:-baseline spp_fixed spp spp_bandpass}
 W=${W:-10000000}; S=${S:-10000000}
 mkdir -p results_ckpt2
 declare -A TP
@@ -17,16 +17,18 @@ for setup in $SETUPS; do
   if [ -z "$B1" ] || [ -z "$B4" ]; then echo "missing binary for $setup"; exit 1; fi
   for label in "${!TP[@]}"; do
     out=results_ckpt2/alone_${setup}_${label}.txt
-    grep -q "Region of Interest Statistics" $out 2>/dev/null || \
+    if [ "$FORCE" = "1" ] || ! grep -q "Per-Core DRAM Statistics" $out 2>/dev/null; then
       echo "$B1 -warmup_instructions $W -simulation_instructions $S -traces ${TP[$label]} > $out" >> jobs2.txt
+    fi
   done
   m=0
   while read -r a b c d; do
     [ -z "$a" ] && continue
     m=$((m+1))
     out=results_ckpt2/mix${m}_${setup}.txt
-    grep -q "Region of Interest Statistics" $out 2>/dev/null || \
+    if [ "$FORCE" = "1" ] || ! grep -q "Per-Core DRAM Statistics" $out 2>/dev/null; then
       echo "$B4 -warmup_instructions $W -simulation_instructions $S -traces ${TP[$a]} ${TP[$b]} ${TP[$c]} ${TP[$d]} > $out" >> jobs2.txt
+    fi
   done < <(tr -d '\r' < mixes2.txt)
 done
 [ -f jobs2.txt ] || { echo "nothing to run"; exit 0; }

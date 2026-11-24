@@ -20,12 +20,12 @@ L1I has LRU replacement policy
 L1D has LRU replacement policy
 L2C has LRU replacement policy
 LLC has LRU replacement policy
-Heartbeat CPU 0 instructions: 10000000 cycles: 3309138 heartbeat IPC: 3.02193 cumulative IPC: 3.02193 (Simulation time: 0 hr 1 min 12 sec) 
+Heartbeat CPU 0 instructions: 10000000 cycles: 3309138 heartbeat IPC: 3.02193 cumulative IPC: 3.02193 (Simulation time: 0 hr 0 min 51 sec) 
 
-Warmup complete CPU 0 instructions: 10000004 cycles: 3309139 (Simulation time: 0 hr 1 min 12 sec) 
+Warmup complete CPU 0 instructions: 10000004 cycles: 3309139 (Simulation time: 0 hr 0 min 51 sec) 
 
-Heartbeat CPU 0 instructions: 20000000 cycles: 35064343 heartbeat IPC: 0.314909 cumulative IPC: 0.314909 (Simulation time: 0 hr 2 min 42 sec) 
-Finished CPU 0 instructions: 10000003 cycles: 31755228 cumulative IPC: 0.314909 (Simulation time: 0 hr 2 min 42 sec) 
+Heartbeat CPU 0 instructions: 20000000 cycles: 35064343 heartbeat IPC: 0.314909 cumulative IPC: 0.314909 (Simulation time: 0 hr 1 min 52 sec) 
+Finished CPU 0 instructions: 10000003 cycles: 31755228 cumulative IPC: 0.314909 (Simulation time: 0 hr 1 min 52 sec) 
 
 ChampSim completed all CPUs
 
@@ -186,7 +186,12 @@ Stores Generated: 1147105
 Stores sent to L1D: 1147105
 Major fault: 0 Minor fault: 4350
 Allocated PAGES: 4350
-CPU 0SPP Final Stats: Degree=4
+CPU 0 SPP Final Stats: Degree=4 Demands=2585005 Prefetches=1424389 Prefetch_Fraction=0.355263
+
+LLC Eviction Statistics:
+CPU 0 LLC Evictions: TOTAL:      97912 SAME_CORE:      97912 CROSS_CORE_CAUSED:          0 CROSS_CORE_SUFFERED:          0
+LLC Cross-Core Evictions Matrix [Aggressor -> Victim]:
+  CPU 0 -> CPU 0: 0
 
 DRAM Statistics
  CHANNEL 0
@@ -219,16 +224,19 @@ Rank 0
 8banks busy for read cycles: 20380
 8banks busy for write cycles: 0
 
+Per-Core DRAM Statistics:
+CPU 0 DRAM Requests: TOTAL:     102459 READS:     102188 (LOAD:      11861, RFO:         32, PREFETCH:      90073, TRANSLATION:        222) WRITES:        271 DRAM_PREF_FRACTION: 0.8834
+
 CPU 0 Branch Prediction Accuracy: 93.2369% MPKI: 16.8822 Average ROB Occupancy at Mispredict: 20.2007
 Branch types
 NOT_BRANCH: 7503462 75.0346%
-BRANCH_DIRECT_JUMP: 265694 2.65694%
-BRANCH_INDIRECT: 0 0%
+BRANCH_DIRECT_JUMP: 265694 2.6569%
+BRANCH_INDIRECT: 0 0.0000%
 BRANCH_CONDITIONAL: 1699276 16.9928%
-BRANCH_DIRECT_CALL: 250736 2.50736%
-BRANCH_INDIRECT_CALL: 14884 0.14884%
-BRANCH_RETURN: 265625 2.65625%
-BRANCH_OTHER: 0 0%
+BRANCH_DIRECT_CALL: 250736 2.5074%
+BRANCH_INDIRECT_CALL: 14884 0.1488%
+BRANCH_RETURN: 265625 2.6562%
+BRANCH_OTHER: 0 0.0000%
 
 DRAM PAGES: 1048576
 Allocated PAGES: 4350

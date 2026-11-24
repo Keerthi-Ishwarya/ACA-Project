@@ -1,8 +1,8 @@
 import csv, os, re
-from metrics import ipcs, metrics
+from metrics import ipcs, metrics, llc_evictions, dram_stats
 
 D = "results_ckpt2"
-SETUPS = ["baseline", "spp_fixed", "spp"]
+SETUPS = ["baseline", "spp_fixed", "spp", "spp_bandpass"]
 
 def done(p):
     return os.path.exists(p) and "Region of Interest Statistics" in open(p).read()
@@ -16,8 +16,9 @@ mixes = []
 if os.path.exists("mixes2.txt"):
     mixes = [l.split() for l in open("mixes2.txt") if l.strip()]
 
-print("Alone runs. gain = IPC fixed degree / IPC no prefetcher")
-print(f"{'trace':10s}{'IPC nopf':>10s}{'IPC fixed':>10s}{'IPC thr':>10s}{'gain':>7s}{'LLC MPKI':>10s}")
+print("Alone runs. gain = IPC setup / IPC baseline")
+header = f"{'trace':10s}" + "".join(f"{('IPC ' + s):>16s}" for s in SETUPS) + f"{'LLC MPKI':>10s}"
+print(header)
 alone = {s: {} for s in SETUPS}
 for lab in labels:
     row = []
@@ -26,9 +27,13 @@ for lab in labels:
         if done(p):
             alone[s][lab] = ipcs(p)[0]
         row.append(alone[s].get(lab))
-    if all(v is not None for v in row):
+    if any(v is not None for v in row):
         pm = f"{D}/alone_baseline_{lab}.txt"
-        print(f"{lab:10s}{row[0]:10.3f}{row[1]:10.3f}{row[2]:10.3f}{row[1] / row[0]:7.2f}{mpki(pm):10.2f}")
+        row_str = f"{lab:10s}"
+        for v in row:
+            row_str += f"{v:16.3f}" if v is not None else f"{'--':>16s}"
+        row_str += f"{mpki(pm):10.2f}"
+        print(row_str)
     else:
         print(f"{lab:10s} not finished")
 
@@ -44,7 +49,7 @@ for s in SETUPS:
         m = metrics(ipcs(p), [alone[s][t] for t in mix])
         vals = [round(m[k], 3) for k in KEYS]
         rows.append([s, i, " ".join(mix)] + vals)
-        print(f"{s:10s} mix{i:<3d} {' '.join(mix):28s} {vals}")
+        print(f"{s:14s} mix{i:<3d} {' '.join(mix):28s} {vals}")
 
 with open("results_table_ckpt2.csv", "w", newline="") as f:
     w = csv.writer(f)

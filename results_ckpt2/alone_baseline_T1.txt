@@ -17,9 +17,9 @@ L1I has LRU replacement policy
 L1D has LRU replacement policy
 L2C has LRU replacement policy
 LLC has LRU replacement policy
-Heartbeat CPU 0 instructions: 10000002 cycles: 2948902 heartbeat IPC: 3.39109 cumulative IPC: 3.39109 (Simulation time: 0 hr 0 min 44 sec) 
+Heartbeat CPU 0 instructions: 10000002 cycles: 2948902 heartbeat IPC: 3.39109 cumulative IPC: 3.39109 (Simulation time: 0 hr 0 min 38 sec) 
 
-Warmup complete CPU 0 instructions: 10000002 cycles: 2948902 (Simulation time: 0 hr 0 min 44 sec) 
+Warmup complete CPU 0 instructions: 10000002 cycles: 2948902 (Simulation time: 0 hr 0 min 38 sec) 
 
 Heartbeat CPU 0 instructions: 20000002 cycles: 35614527 heartbeat IPC: 0.306132 cumulative IPC: 0.306132 (Simulation time: 0 hr 1 min 40 sec) 
 Finished CPU 0 instructions: 10000000 cycles: 32665625 cumulative IPC: 0.306132 (Simulation time: 0 hr 1 min 40 sec) 
@@ -172,6 +172,11 @@ Stores sent to L1D: 1234316
 Major fault: 0 Minor fault: 25518
 Allocated PAGES: 25518
 
+LLC Eviction Statistics:
+CPU 0 LLC Evictions: TOTAL:      52649 SAME_CORE:      52649 CROSS_CORE_CAUSED:          0 CROSS_CORE_SUFFERED:          0
+LLC Cross-Core Evictions Matrix [Aggressor -> Victim]:
+  CPU 0 -> CPU 0: 0
+
 DRAM Statistics
  CHANNEL 0
  RQ ROW_BUFFER_HIT:      24955  ROW_BUFFER_MISS:      54692
@@ -203,16 +208,19 @@ Rank 0
 8banks busy for read cycles: 76665
 8banks busy for write cycles: 65226
 
+Per-Core DRAM Statistics:
+CPU 0 DRAM Requests: TOTAL:     109156 READS:      79647 (LOAD:      38180, RFO:      36615, PREFETCH:          0, TRANSLATION:       4852) WRITES:      29509 DRAM_PREF_FRACTION: 0.0000
+
 CPU 0 Branch Prediction Accuracy: 90.8999% MPKI: 16.5973 Average ROB Occupancy at Mispredict: 13.4361
 Branch types
 NOT_BRANCH: 8175840 81.7584%
-BRANCH_DIRECT_JUMP: 53931 0.53931%
-BRANCH_INDIRECT: 21123 0.21123%
-BRANCH_CONDITIONAL: 1579700 15.797%
-BRANCH_DIRECT_CALL: 73587 0.73587%
-BRANCH_INDIRECT_CALL: 10938 0.10938%
-BRANCH_RETURN: 84571 0.84571%
-BRANCH_OTHER: 6 6e-05%
+BRANCH_DIRECT_JUMP: 53931 0.5393%
+BRANCH_INDIRECT: 21123 0.2112%
+BRANCH_CONDITIONAL: 1579700 15.7970%
+BRANCH_DIRECT_CALL: 73587 0.7359%
+BRANCH_INDIRECT_CALL: 10938 0.1094%
+BRANCH_RETURN: 84571 0.8457%
+BRANCH_OTHER: 6 0.0001%
 
 DRAM PAGES: 1048576
 Allocated PAGES: 25518

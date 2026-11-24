@@ -47,24 +47,24 @@ L1I has LRU replacement policy
 L1D has LRU replacement policy
 L2C has LRU replacement policy
 LLC has LRU replacement policy
-Heartbeat CPU 1 instructions: 10000000 cycles: 2942430 heartbeat IPC: 3.39855 cumulative IPC: 3.39855 (Simulation time: 0 hr 4 min 13 sec) 
-Heartbeat CPU 2 instructions: 10000000 cycles: 2944392 heartbeat IPC: 3.39629 cumulative IPC: 3.39629 (Simulation time: 0 hr 4 min 13 sec) 
-Heartbeat CPU 3 instructions: 10000000 cycles: 2945390 heartbeat IPC: 3.39514 cumulative IPC: 3.39514 (Simulation time: 0 hr 4 min 13 sec) 
-Heartbeat CPU 0 instructions: 10000002 cycles: 3718507 heartbeat IPC: 2.68925 cumulative IPC: 2.68925 (Simulation time: 0 hr 5 min 4 sec) 
+Heartbeat CPU 1 instructions: 10000000 cycles: 2942430 heartbeat IPC: 3.39855 cumulative IPC: 3.39855 (Simulation time: 0 hr 3 min 56 sec) 
+Heartbeat CPU 2 instructions: 10000000 cycles: 2944392 heartbeat IPC: 3.39629 cumulative IPC: 3.39629 (Simulation time: 0 hr 3 min 56 sec) 
+Heartbeat CPU 3 instructions: 10000000 cycles: 2945390 heartbeat IPC: 3.39514 cumulative IPC: 3.39514 (Simulation time: 0 hr 3 min 56 sec) 
+Heartbeat CPU 0 instructions: 10000002 cycles: 3718507 heartbeat IPC: 2.68925 cumulative IPC: 2.68925 (Simulation time: 0 hr 4 min 52 sec) 
 
-Warmup complete CPU 0 instructions: 10000002 cycles: 3718507 (Simulation time: 0 hr 5 min 4 sec) 
-Warmup complete CPU 1 instructions: 12658569 cycles: 3718506 (Simulation time: 0 hr 5 min 4 sec) 
-Warmup complete CPU 2 instructions: 12651284 cycles: 3718506 (Simulation time: 0 hr 5 min 4 sec) 
-Warmup complete CPU 3 instructions: 12647805 cycles: 3718506 (Simulation time: 0 hr 5 min 4 sec) 
+Warmup complete CPU 0 instructions: 10000002 cycles: 3718507 (Simulation time: 0 hr 4 min 52 sec) 
+Warmup complete CPU 1 instructions: 12658569 cycles: 3718506 (Simulation time: 0 hr 4 min 52 sec) 
+Warmup complete CPU 2 instructions: 12651284 cycles: 3718506 (Simulation time: 0 hr 4 min 52 sec) 
+Warmup complete CPU 3 instructions: 12647805 cycles: 3718506 (Simulation time: 0 hr 4 min 52 sec) 
 
-Heartbeat CPU 0 instructions: 20000001 cycles: 26709852 heartbeat IPC: 0.434946 cumulative IPC: 0.434946 (Simulation time: 0 hr 11 min 25 sec) 
-Finished CPU 0 instructions: 10000001 cycles: 22991346 cumulative IPC: 0.434946 (Simulation time: 0 hr 11 min 25 sec) 
-Heartbeat CPU 3 instructions: 20000002 cycles: 47618910 heartbeat IPC: 0.223846 cumulative IPC: 0.167474 (Simulation time: 0 hr 16 min 20 sec) 
-Heartbeat CPU 2 instructions: 20000002 cycles: 47677082 heartbeat IPC: 0.22355 cumulative IPC: 0.167174 (Simulation time: 0 hr 16 min 20 sec) 
-Heartbeat CPU 1 instructions: 20000002 cycles: 47900162 heartbeat IPC: 0.222431 cumulative IPC: 0.166165 (Simulation time: 0 hr 16 min 23 sec) 
-Finished CPU 3 instructions: 10000001 cycles: 58624055 cumulative IPC: 0.170578 (Simulation time: 0 hr 19 min 29 sec) 
-Finished CPU 2 instructions: 10000000 cycles: 58684460 cumulative IPC: 0.170403 (Simulation time: 0 hr 19 min 29 sec) 
-Finished CPU 1 instructions: 10000000 cycles: 58919489 cumulative IPC: 0.169723 (Simulation time: 0 hr 19 min 32 sec) 
+Heartbeat CPU 0 instructions: 20000001 cycles: 26709852 heartbeat IPC: 0.434946 cumulative IPC: 0.434946 (Simulation time: 0 hr 9 min 59 sec) 
+Finished CPU 0 instructions: 10000001 cycles: 22991346 cumulative IPC: 0.434946 (Simulation time: 0 hr 9 min 59 sec) 
+Heartbeat CPU 3 instructions: 20000002 cycles: 47618910 heartbeat IPC: 0.223846 cumulative IPC: 0.167474 (Simulation time: 0 hr 14 min 20 sec) 
+Heartbeat CPU 2 instructions: 20000002 cycles: 47677082 heartbeat IPC: 0.22355 cumulative IPC: 0.167174 (Simulation time: 0 hr 14 min 20 sec) 
+Heartbeat CPU 1 instructions: 20000002 cycles: 47900162 heartbeat IPC: 0.222431 cumulative IPC: 0.166165 (Simulation time: 0 hr 14 min 24 sec) 
+Finished CPU 3 instructions: 10000001 cycles: 58624055 cumulative IPC: 0.170578 (Simulation time: 0 hr 17 min 55 sec) 
+Finished CPU 2 instructions: 10000000 cycles: 58684460 cumulative IPC: 0.170403 (Simulation time: 0 hr 17 min 56 sec) 
+Finished CPU 1 instructions: 10000000 cycles: 58919489 cumulative IPC: 0.169723 (Simulation time: 0 hr 17 min 58 sec) 
 
 ChampSim completed all CPUs
 
@@ -898,4 +898,114 @@ Loads sent to L1D: 2349709
 Stores Generated: 1831682
 Stores sent to L1D: 1831683
 Major fault: 0 Minor fault: 11426
+Allocated PAGES: 37487
+
+LLC Eviction Statistics:
+CPU 0 LLC Evictions: TOTAL:      42238 SAME_CORE:       1306 CROSS_CORE_CAUSED:      40932 CROSS_CORE_SUFFERED:      37428
+CPU 1 LLC Evictions: TOTAL:     468736 SAME_CORE:     150473 CROSS_CORE_CAUSED:     318263 CROSS_CORE_SUFFERED:     319640
+CPU 2 LLC Evictions: TOTAL:     470574 SAME_CORE:     152929 CROSS_CORE_CAUSED:     317645 CROSS_CORE_SUFFERED:     318138
+CPU 3 LLC Evictions: TOTAL:     471178 SAME_CORE:     150135 CROSS_CORE_CAUSED:     321043 CROSS_CORE_SUFFERED:     322677
+LLC Cross-Core Evictions Matrix [Aggressor -> Victim]:
+  CPU 0 -> CPU 0: 0
+  CPU 0 -> CPU 1: 13621
+  CPU 0 -> CPU 2: 13368
+  CPU 0 -> CPU 3: 13943
+  CPU 1 -> CPU 0: 12278
+  CPU 1 -> CPU 1: 0
+  CPU 1 -> CPU 2: 151854
+  CPU 1 -> CPU 3: 154131
+  CPU 2 -> CPU 0: 12057
+  CPU 2 -> CPU 1: 150985
+  CPU 2 -> CPU 2: 0
+  CPU 2 -> CPU 3: 154603
+  CPU 3 -> CPU 0: 13093
+  CPU 3 -> CPU 1: 155034
+  CPU 3 -> CPU 2: 152916
+  CPU 3 -> CPU 3: 0
+
+DRAM Statistics
+ CHANNEL 0
+ RQ ROW_BUFFER_HIT:     236093  ROW_BUFFER_MISS:    1204722
+ DBUS_CONGESTED:          0
+ WQ ROW_BUFFER_HIT:     107292  ROW_BUFFER_MISS:     966755  FULL:          0
+
+ AVG_CONGESTED_CYCLE: -
+ All warmup complete: 5
+Channel 0 Bank busy for read cycles: 0
+Channel 0 Bank busy for write cycles: 0
+Channel 0
+Rank 0
+0banks busy for read cycles: 639
+0banks busy for write cycles: 0
+1banks busy for read cycles: 169752
+1banks busy for write cycles: 101674
+2banks busy for read cycles: 276391
+2banks busy for write cycles: 101637
+3banks busy for read cycles: 441293
+3banks busy for write cycles: 101637
+4banks busy for read cycles: 818333
+4banks busy for write cycles: 101637
+5banks busy for read cycles: 1486467
+5banks busy for write cycles: 101680
+6banks busy for read cycles: 3238418
+6banks busy for write cycles: 111993
+7banks busy for read cycles: 7399993
+7banks busy for write cycles: 1458157
+8banks busy for read cycles: 17720508
+8banks busy for write cycles: 25289280
+
+Per-Core DRAM Statistics:
+CPU 0 DRAM Requests: TOTAL:      61838 READS:      30367 (LOAD:      16304, RFO:      12698, PREFETCH:          0, TRANSLATION:       1365) WRITES:      31471 DRAM_PREF_FRACTION: 0.0000
+CPU 1 DRAM Requests: TOTAL:     815276 READS:     468739 (LOAD:     116959, RFO:     350855, PREFETCH:          0, TRANSLATION:        925) WRITES:     346537 DRAM_PREF_FRACTION: 0.0000
+CPU 2 DRAM Requests: TOTAL:     818390 READS:     470565 (LOAD:     117415, RFO:     352223, PREFETCH:          0, TRANSLATION:        927) WRITES:     347825 DRAM_PREF_FRACTION: 0.0000
+CPU 3 DRAM Requests: TOTAL:     819440 READS:     471173 (LOAD:     117565, RFO:     352680, PREFETCH:          0, TRANSLATION:        928) WRITES:     348267 DRAM_PREF_FRACTION: 0.0000
+
+CPU 0 Branch Prediction Accuracy: 99.6701% MPKI: 0.9690 Average ROB Occupancy at Mispredict: 72.3141
+Branch types
+NOT_BRANCH: 12958554 70.6264%
+BRANCH_DIRECT_JUMP: 141025 0.7686%
+BRANCH_INDIRECT: 45796 0.2496%
+BRANCH_CONDITIONAL: 4827457 26.3105%
+BRANCH_DIRECT_CALL: 107253 0.5845%
+BRANCH_INDIRECT_CALL: 80167 0.4369%
+BRANCH_RETURN: 187422 1.0215%
+BRANCH_OTHER: 0 0.0000%
+
+
+CPU 1 Branch Prediction Accuracy: 97.0974% MPKI: 0.4066 Average ROB Occupancy at Mispredict: 281.4764
+Branch types
+NOT_BRANCH: 9822575 98.2258%
+BRANCH_DIRECT_JUMP: 28292 0.2829%
+BRANCH_INDIRECT: 0 0.0000%
+BRANCH_CONDITIONAL: 149029 1.4903%
+BRANCH_DIRECT_CALL: 0 0.0000%
+BRANCH_INDIRECT_CALL: 0 0.0000%
+BRANCH_RETURN: 0 0.0000%
+BRANCH_OTHER: 0 0.0000%
+
+
+CPU 2 Branch Prediction Accuracy: 97.0984% MPKI: 0.4070 Average ROB Occupancy at Mispredict: 282.3307
+Branch types
+NOT_BRANCH: 9859979 98.2292%
+BRANCH_DIRECT_JUMP: 28405 0.2830%
+BRANCH_INDIRECT: 0 0.0000%
+BRANCH_CONDITIONAL: 149603 1.4904%
+BRANCH_DIRECT_CALL: 0 0.0000%
+BRANCH_INDIRECT_CALL: 0 0.0000%
+BRANCH_RETURN: 0 0.0000%
+BRANCH_OTHER: 0 0.0000%
+
+
+CPU 3 Branch Prediction Accuracy: 97.0969% MPKI: 0.4076 Average ROB Occupancy at Mispredict: 281.7296
+Branch types
+NOT_BRANCH: 9869336 98.2278%
+BRANCH_DIRECT_JUMP: 28449 0.2831%
+BRANCH_INDIRECT: 0 0.0000%
+BRANCH_CONDITIONAL: 149773 1.4907%
+BRANCH_DIRECT_CALL: 0 0.0000%
+BRANCH_INDIRECT_CALL: 0 0.0000%
+BRANCH_RETURN: 0 0.0000%
+BRANCH_OTHER: 0 0.0000%
+
+DRAM PAGES: 1048576
 Allocated PAGES: 37487

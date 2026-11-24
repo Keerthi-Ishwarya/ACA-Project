@@ -38,8 +38,28 @@ class MEMORY_CONTROLLER : public MEMORY {
     // queues
     PACKET_QUEUE WQ[DRAM_CHANNELS], RQ[DRAM_CHANNELS];
 
+    // Checkpoint 2: per-core DRAM request counters
+    uint64_t dram_rq_requests[NUM_CPUS];
+    uint64_t dram_rq_loads[NUM_CPUS];
+    uint64_t dram_rq_rfos[NUM_CPUS];
+    uint64_t dram_rq_prefetches[NUM_CPUS];
+    uint64_t dram_rq_translations[NUM_CPUS];
+    uint64_t dram_wq_requests[NUM_CPUS];
+
+    void reset_stats() {
+        for (uint32_t i=0; i<NUM_CPUS; i++) {
+            dram_rq_requests[i] = 0;
+            dram_rq_loads[i] = 0;
+            dram_rq_rfos[i] = 0;
+            dram_rq_prefetches[i] = 0;
+            dram_rq_translations[i] = 0;
+            dram_wq_requests[i] = 0;
+        }
+    }
+
     // constructor
     MEMORY_CONTROLLER(string v1) : NAME (v1) {
+        reset_stats();
         for (uint32_t i=0; i<NUM_TYPES+1; i++) {
             for (uint32_t j=0; j<NUM_TYPES+1; j++) {
                 dbus_congested[i][j] = 0;

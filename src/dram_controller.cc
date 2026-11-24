@@ -555,6 +555,19 @@ int MEMORY_CONTROLLER::add_rq(PACKET *packet)
         return -1;
     }
 
+    // Checkpoint 2: count per-core DRAM read requests
+    if (packet->cpu < NUM_CPUS) {
+        dram_rq_requests[packet->cpu]++;
+        if (packet->type == LOAD)
+            dram_rq_loads[packet->cpu]++;
+        else if (packet->type == RFO)
+            dram_rq_rfos[packet->cpu]++;
+        else if (packet->type == PREFETCH)
+            dram_rq_prefetches[packet->cpu]++;
+        else if (packet->type == LOAD_TRANSLATION || packet->type == PREFETCH_TRANSLATION)
+            dram_rq_translations[packet->cpu]++;
+    }
+
     // check for the latest wirtebacks in the write queue
     uint32_t channel = dram_get_channel(packet->address);
     int wq_index = check_dram_queue(&WQ[channel], packet);
@@ -640,6 +653,11 @@ int MEMORY_CONTROLLER::add_wq(PACKET *packet)
     // simply drop write requests before the warmup
     if (all_warmup_complete < NUM_CPUS)
         return -1;
+
+    // Checkpoint 2: count per-core DRAM write requests
+    if (packet->cpu < NUM_CPUS) {
+        dram_wq_requests[packet->cpu]++;
+    }
 
     // check for duplicates in the write queue
     uint32_t channel = dram_get_channel(packet->address);
