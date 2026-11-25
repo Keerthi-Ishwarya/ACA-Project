@@ -26,9 +26,14 @@ All counters are reset when warm-up ends, so they only cover the measured part.
 
 ## How my Band-Pass works
 
-Each core counts its candidate prefetches (what the prefetcher wants to send, before any dropping) and its demand misses. Every 2^14=16384 demand misses it computes (i took that number because smaller epoch size of 1,024 caused mcf to flip between zones,which looked like noise and The paper measures 300M instr on 16cores, 1million misses is too big. Mines is 10M instr per core so i  took the value between those two) 
+Each core counts the prefetches its prefetcher wants to send (candidates, counted before
+any are dropped) and its L1D accesses. Every 16,384 (2^14) L1D accesses it computes (i took that number because I first tried 1,024 accesses, but then mcf kept jumping between zones from one epoch to
+the next, which looked like noise. The paper uses 1 million LLC misses, but it runs 300M
+instructions per program on 16 cores. My runs are 10M instructions per core, so an epoch
+that long would give very few epochs. I picked 16,384, between the two. I did not test
+other values) 
 
-    PF = candidates / (demands + candidates)
+    PF = candidates / (L1D accesses + candidates)
 
 and picks a zone for the next epoch:
 
@@ -54,9 +59,6 @@ The FST-style controller from my proposal is **not done** (not enough time).
 | `traces.txt` | trace label and path (paths are for my machine; trace files are not in the repo) |
 | `mixes2.txt` | the 16 mixes, four trace labels per line |
 | `run2.sh` | runs all simulations |
-| `metrics.py`, `report2.py`, `percore2.py` | parse results, print metrics and per-core counters |
-| `analysis3.py` | summary tables, signal-vs-harm correlations, Band-Pass audit, writes `results_summary.csv` |
-| `plots3.py` | makes the four figures `fig*.png` |
 | `results_ckpt2/` | raw simulator output for all 100 runs |
 | `results_ckpt2_bp_v1/` | first Band-Pass runs, before I fixed a bug in the look-ahead code. Kept only for comparison. |
 
@@ -83,35 +85,6 @@ The FST-style controller from my proposal is **not done** (not enough time).
          grep -q "Region of Interest Statistics" "$f" || echo "not done: $f"
        done
 
-5. Make the tables and figures:
-
-       python3 report2.py
-       python3 percore2.py
-       python3 analysis3.py
-       python3 plots3.py
-
-## Metrics
-
-For each core, slowdown = alone IPC / shared IPC. Max slowdown is the worst core in a mix. Unfairness is the largest slowdown divided by the smallest (1 means equal). Weighted speedup is the sum of shared/alone IPC and harmonic speedup is 4 divided by the sum of slowdowns.
-
-The main tables measure every setup against the `baseline` alone IPC. The other option, each setup against its own alone IPC, is also printed.
-
-## Results so far
-
-16 mixes, all measured against baseline alone IPC:
-
-| setup | max slowdown | unfairness | weighted speedup | harmonic speedup |
-|---|---|---|---|---|
-| baseline | 1.808 | 1.348 | 2.683 | 0.654 |
-| spp_fixed | 1.955 | 1.730 | 3.039 | 0.705 |
-| spp | 1.935 | 1.706 | 3.017 | 0.703 |
-| spp_bandpass | 1.940 | 1.715 | 3.020 | 0.704 |
-
-- Prefetching makes the system faster but less fair.
-- Band-Pass is only about 1% better than `spp_fixed` in unfairness. It is better in 3 mixes, worse in 2 and about the same in 11.
-- DRAM requests and DRAM prefetch fraction have a weak link (rank correlation about 0.33 to 0.36) with how much other cores slow down. Eviction counts do not.
-- The paper's observation that prefetch fraction goes up with accuracy did not show up here (correlation -0.30).
-- In mixes 10 and 11 the low-pass part throttled `bwaves` for most epochs and `bwaves` lost 27.5% and 12.6% of its IPC, with almost no gain for the others. In mix 12 throttling `lbm` helped the other cores by about 2.5%.
 
 ## Limits
 
