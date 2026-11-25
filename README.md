@@ -1,141 +1,122 @@
-# Do Fair Prefetching Methods Really Work on a Shared Cache?
+# Do fair prefetching methods really work on a shared cache?
 
-**Status: checkpoint 1 complete.** repo contains working 4core ChampSim setup, scripts that run the experiments and compute fairness metrics,  results of 33 simulations. Checkpoint 2 (direct interference counters and fairness-oriented controllers) in progress.
+## What this is
 
-## The question
+When so many LLC and memory, the prefetcher of one core can push out another core's data and use up memory bandwidth. Some papers try to fix this by controlling how much each core prefetches. This project checks, in ChampSim with 4 cores, whether one such method (Band-Pass prefetching, Sridharan et al., TACO 2017) really makes slowdowns more equal.
 
-Cores of multi-core processor share the LLC and the DRAM bandwidth, so the prefetcher of one core can slow down the other cores. FST, P-FST, HPAC and Band-Pass Prefetching control prefetchers to reduce this interference, but each paper tests its own method in its own simulator. This project re tests such methods in ChampSim and asks:
+I changed ChampSim to measure the interference directly, wrote a simplified Band-Pass controller, and compared four setups on 16 four-core mixes.
 
-1. Do they make the slowdowns of the cores more equal?
-2. Do the signals they use match the real harm?
-3. What do they cost in speed?
+## The four setups
 
-Checkpoint 1 measures how unfair the shared system is **without** any fairness control. This is the baseline for the methods of checkpoint 2.
-
-## Main results of checkpoint 1
-
-Eight four core mixes of 3 traces (T1, T2, T3), three setups, 25M warmup + 25M simulated instructions per core. GM over the 5 mixed workloads (mixes 4 to 8). Slowdown = IPC alone divided by IPC shared, and unfairness = largest slowdown / the smallest (1 means equal).
-
-| Setup | Max. slowdown (lower is better) | Unfairness (lower is better) | Weighted speedup (higher is better) | Harmonic speedup (higher is better) |
-|---|---|---|---|---|
-| No prefetcher | 1.408 | 1.242 | 3.172 | 0.785 |
-| Fixed degree 4 ("no control") | 1.442 | 1.265 | 3.134 | 0.774 |
-| Throttled degree 1-4 (PA2 accuracy throttling) | 1.436 | 1.263 | 3.141 | 0.776 |
-
-- The mixed workloads are unfair (unfairness up to 1.39), and the PA2 accuracy throttling changes the unfairness by at most 0.008 compared with a fixed degree.
-- Most of the unfairness comes from the different sensitivity of the traces to sharing (T1 slows down by 1.40 to 1.62, T3 by 1.10 to 1.16 whatever its neighbours are), not from visible harm of one core to another. Checkpoint 2 tests this with direct counters.
-- All per-mix numbers are in `results_table_ckpt1.csv`
-
-## Environment
-
-- Ubuntu under WSL2 on Windows, GCC 13, Python 3 
-- A 4-core run needs roughly 100 to 200 MB of RAM.
-- The simulator is deterministic: same run gives same IPC.
-- **Traces are not included.** The three traces are the ones provided for PA2 (`Trace1-002`, `Trace2-003`, `Trace3-001`, `.champsimtrace.gz`). The scripts expect them in `/mnt/d/traces/`; change the variables `T1`, `T2`, `T3` at the top of `run_all.sh` and `run_fixed.sh` if they are elsewhere.
-
-## Repository layout
-
-| Path | Content |
+| name | what it does |
 |---|---|
-| `src/`, `inc/`, `branch/`, `replacement/` | ChampSim sources (PA2 base, with the changes listed below) |
-| `prefetcher/spp.l1d_pref` | Throttled prefetcher (PA2 accuracy throttling), per-core state |
-| `prefetcher/spp_fixed.l1d_pref` | Same prefetcher with the degree fixed to 4 (the "no control" setup) |
-| `prefetcher/ip_stride.l1d_pref`, `prefetcher/no.l1d_pref` | Stride prefetcher and "no prefetcher" from the base |
-| `build_champsim.sh` | Build script with an optional number of cores |
-| `mixes.txt` | The eight four-core mixes, one per line |
-| `run_all.sh` | Runs the alone runs and the eight mixes for the `baseline` and `spp` setups (22 jobs) |
-| `run_fixed.sh` | The same for the `spp_fixed` setup (11 jobs) |
-| `metrics.py`, `report.py`, `percore.py` | Metrics library, table of metrics per mix, slowdown of every core |
-| `reap.sh` | Optional watcher that stops finished simulations that linger and block the job queue |
-| `results/` | Raw ChampSim output of all 33 runs |
-| `results_table_ckpt1.csv` | Metrics of all mixes and setups |
-| `scripts/` | Helper scripts inherited from the PA2 base (not used by the project scripts) |
+| `baseline` | no prefetcher |
+| `spp_fixed` | SPP-style prefetcher at L1D, always up to 4 lines ahead, no control |
+| `spp` | same prefetcher with my PA2 accuracy throttling |
+| `spp_bandpass` | same prefetcher plus the Band-Pass drop filter |
 
-Naming in the results: `baseline` means no prefetcher, `spp` means the throttled prefetcher, `spp_fixed` means the fixed-degree prefetcher. Files are `results/alone_<setup>_<trace>.txt` and `results/mix<k>_<setup>.txt`.
+## What I added to ChampSim
 
-## Simulated system
+- **Cross-core LLC evictions.** When a fill pushes out a valid block, I check whether the old block belonged to another core. Per-core "caused" and "suffered" counts and a 4x4 table (who evicted whom) are printed. Code: `inc/cache.h`, `src/cache.cc`, `src/main.cc`.
+- **Per-core DRAM requests.** Loads, RFOs, prefetches, translations and writes are counted for each core, and the DRAM prefetch fraction is printed. Code: `inc/dram_controller.h`, `src/dram_controller.cc`, `src/main.cc`.
+- **Prefetch fraction at L1D.** `prefetcher/spp.l1d_pref` and `prefetcher/spp_fixed.l1d_pref` print demands, prefetches and the fraction.
+- **Band-Pass controller.** `prefetcher/spp_bandpass.l1d_pref`.
 
-4 cores with a hashed perceptron branch predictor, a shared 8 MB 16-way LLC (8192 sets) with LRU, one DRAM channel shared by all cores, LRU at all cache levels, L1D prefetcher as selected by the setup. The LLC size is fixed to the four-core value in `inc/cache.h` for **every** build, so that the alone runs (one core) and the shared runs (four cores) use the same cache.
+All counters are reset when warm-up ends, so they only cover the measured part.
 
-## Build
+## How my Band-Pass works
 
-```bash
-# 1 = number of cores. Usage: ./build_champsim.sh <L1D prefetcher> <replacement> <binary name> [num_core]
-./build_champsim.sh no        lru baseline_1c   1
-./build_champsim.sh spp       lru spp_1c        1
-./build_champsim.sh spp_fixed lru spp_fixed_1c  1
-./build_champsim.sh no        lru baseline_4c   4
-./build_champsim.sh spp       lru spp_4c        4
-./build_champsim.sh spp_fixed lru spp_fixed_4c  4
-ls bin
-```
+Each core counts its candidate prefetches (what the prefetcher wants to send, before any dropping) and its demand misses. Every 2^14=16384 demand misses it computes (i took that number because smaller epoch size of 1,024 caused mcf to flip between zones,which looked like noise and The paper measures 300M instr on 16cores, 1million misses is too big. Mines is 10M instr per core so i  took the value between those two) 
 
-**Important:** the build script temporarily changes `NUM_CPUS` in `inc/champsim.h` and restores it afterwards. If a build fails, the file can stay at the wrong value. Before every build, check that this prints `1`, and run builds one after another, never in parallel:
+    PF = candidates / (demands + candidates)
 
-```bash
-grep -n "define NUM_CPUS" inc/champsim.h
-```
+and picks a zone for the next epoch:
 
-## Sanity check (about 1 minute)
+- PF below 0.21: issue 1 prefetch in 16, drop the rest
+- PF between 0.21 and 0.50: issue everything
+- PF above 0.50: issue 1 in 2
 
-One core, `Trace1-002`, 1M warm-up and 1M simulated instructions:
+The thresholds and drop rates come from the paper. The epoch length is my own choice and I did not sweep it.
 
-```bash
-T1=/path/to/Trace1-002.champsimtrace.gz
-./bin/*-1core-spp_1c       -warmup_instructions 1000000 -simulation_instructions 1000000 -traces $T1 | grep "^CPU 0 cumulative IPC"
-./bin/*-1core-spp_fixed_1c -warmup_instructions 1000000 -simulation_instructions 1000000 -traces $T1 | grep -E "^CPU 0 cumulative IPC|Degree"
-```
+### Differences from the paper
 
-Expected: IPC `0.234648` for `spp`, and IPC `0.235071` with `Degree=4` for `spp_fixed`.
+- The paper's low-pass part is global: it checks whether demands wait longer than prefetches in memory and whether prefetches outnumber demands in the whole system, then slows only the one worst core. Mine is local: each core only looks at its own PF.
+- The paper controls an L2 stream prefetcher. I control an SPP-style prefetcher at L1D.
+- The paper uses epochs of 1 million LLC misses, 16 cores, 300M instructions. I use 16,384 demand misses, 4 cores, 10M instructions.
+- Thresholds were not re-tuned for this simulator.
 
-## Run the experiments
+The FST-style controller from my proposal is **not done** (not enough time).
 
-```bash
-bash run_all.sh 4      # alone runs and mixes for baseline and spp, 4 jobs in parallel
-bash run_fixed.sh 2    # alone runs and mixes for spp_fixed, 2 jobs in parallel
-```
+## Files
 
-Each one-core run takes about 2-3 minutes and each four-core run about 25 minutes. All 33 runs take about two hours with 6 parallel jobs on a laptop with 8 threads. A run is finished when its output file contains `Region of Interest Statistics`:
+| file | purpose |
+|---|---|
+| `traces.txt` | trace label and path (paths are for my machine; trace files are not in the repo) |
+| `mixes2.txt` | the 16 mixes, four trace labels per line |
+| `run2.sh` | runs all simulations |
+| `metrics.py`, `report2.py`, `percore2.py` | parse results, print metrics and per-core counters |
+| `analysis3.py` | summary tables, signal-vs-harm correlations, Band-Pass audit, writes `results_summary.csv` |
+| `plots3.py` | makes the four figures `fig*.png` |
+| `results_ckpt2/` | raw simulator output for all 100 runs |
+| `results_ckpt2_bp_v1/` | first Band-Pass runs, before I fixed a bug in the look-ahead code. Kept only for comparison. |
 
-```bash
-for f in results/alone_*.txt results/mix*.txt; do
-  grep -q "Region of Interest Statistics" "$f" || echo "not done: $f"
-done
-```
 
-If finished simulations stay alive after printing their statistics and block the job queue, run `nohup bash reap.sh > reap.log 2>&1 &` while the batch runs, and stop it with `pkill -f reap.sh` afterwards.
+## How to reproduce
 
-## Compute the metrics
+1. Build the eight binaries (1-core and 4-core for each of the four setups):
+   
+       bash build_all.sh
 
-```bash
-python3 report.py      # prints the metrics of every mix and setup, writes results_table.csv
-python3 percore.py     # prints the slowdown of every core, plus the alone IPC of each trace
-```
+   This calls `./build_champsim.sh <L1D prefetcher> lru <name> <cores>` 8, for
+   `no` (baseline), `spp_fixed`, `spp` and `spp_bandpass`, each with 1 and 4 cores.
+   
 
-Definitions (N = 4 cores): speedup = IPC shared / IPC alone, slowdown = 1 / speedup, maximum slowdown = largest slowdown, unfairness = largest slowdown / smallest slowdown, weighted speedup = sum of speedups, harmonic speedup = N / sum of (1 / speedup). Ratios are summarized across mixes with the geometric mean.
+3. Run the simulations (10M warm-up + 10M measured instructions, 6 jobs at a time):
 
-## Changes to the base code
+       bash run2.sh 6 baseline spp_fixed spp spp_bandpass
 
-1. `src/page_table_walker.cc`, `inc/page_table_walker.h`: `handle_page_fault` declares a return value but returns nothing, which crashes multi-core runs under GCC 13; it returns `void`.
-2. `src/main.cc`: `index` is initialized, and the context-switch index is guarded when the option is absent.
-3. `build_champsim.sh`: optional fourth argument for the number of cores.
-4. `inc/cache.h` (lines 102 to 107): the LLC sets and queue sizes use the four-core values for every build.
-5. `prefetcher/spp.l1d_pref`: all tables and counters are per core (`[NUM_CPUS]`), and the confidence cap now applies to the tracker in use (the base code capped the first tracker only).
-6. `prefetcher/spp_fixed.l1d_pref` (new): the same prefetcher with the degree fixed to 4.
+   `run2.sh` skips runs whose output already contains `Per-Core DRAM Statistics`. To rerun one setup, delete its files in `results_ckpt2/` first. `FORCE=1` reruns everything, so be careful with it.
 
-## Plan for checkpoint 2
+4. Check that every run finished:
 
-- Add counters for cross-core evictions, per-core DRAM requests and the prefetch fraction, and test them on a tiny example.
-- Implement simplified FST-style and Band-Pass controllers (HPAC-style control if time allows) and compare them with no control and the PA2 throttling on more mixes.
-- Add more traces, especially traces on which prefetching matters.
-- Analyse whether the slowdowns become more equal, whether the signals match the real harm, what the speed cost is, and where the controllers decide wrongly.
+       for f in results_ckpt2/*.txt; do
+         grep -q "Region of Interest Statistics" "$f" || echo "not done: $f"
+       done
 
-## Limitations
+5. Make the tables and figures:
 
-Three traces and eight mixes (three of them same-trace control mixes), one DRAM channel, and a prefetcher that changes the IPC of these traces by at most 0.009. The slowdowns of different setups are relative to different alone runs and are not directly comparable.
+       python3 report2.py
+       python3 percore2.py
+       python3 analysis3.py
+       python3 plots3.py
 
-## Credits
+## Metrics
 
-- ChampSim: https://github.com/ChampSim/ChampSim (see `LICENSE`).
-- The base code is the version of ChampSim used for the CS683 assignment PA2, including the accuracy-throttled prefetcher. <!-- If PA2 was done with a teammate, name them here. -->
-- Papers: FST (Ebrahimi et al., ASPLOS 2010), P-FST (Ebrahimi et al., ISCA 2011), HPAC (Ebrahimi et al., MICRO 2009), Band-Pass Prefetching (Sridharan, Panda, Seznec, TACO 2017).
+For each core, slowdown = alone IPC / shared IPC. Max slowdown is the worst core in a mix. Unfairness is the largest slowdown divided by the smallest (1 means equal). Weighted speedup is the sum of shared/alone IPC and harmonic speedup is 4 divided by the sum of slowdowns.
+
+The main tables measure every setup against the `baseline` alone IPC. The other option, each setup against its own alone IPC, is also printed.
+
+## Results so far
+
+16 mixes, all measured against baseline alone IPC:
+
+| setup | max slowdown | unfairness | weighted speedup | harmonic speedup |
+|---|---|---|---|---|
+| baseline | 1.808 | 1.348 | 2.683 | 0.654 |
+| spp_fixed | 1.955 | 1.730 | 3.039 | 0.705 |
+| spp | 1.935 | 1.706 | 3.017 | 0.703 |
+| spp_bandpass | 1.940 | 1.715 | 3.020 | 0.704 |
+
+- Prefetching makes the system faster but less fair.
+- Band-Pass is only about 1% better than `spp_fixed` in unfairness. It is better in 3 mixes, worse in 2 and about the same in 11.
+- DRAM requests and DRAM prefetch fraction have a weak link (rank correlation about 0.33 to 0.36) with how much other cores slow down. Eviction counts do not.
+- The paper's observation that prefetch fraction goes up with accuracy did not show up here (correlation -0.30).
+- In mixes 10 and 11 the low-pass part throttled `bwaves` for most epochs and `bwaves` lost 27.5% and 12.6% of its IPC, with almost no gain for the others. In mix 12 throttling `lbm` helped the other cores by about 2.5%.
+
+## Limits
+
+- Only Band-Pass-style control was tested. FST and HPAC were not.
+- 9 traces, 16 mixes, one run per setup and mix, 10M instructions.
+- Accuracy is a lower bound, because "useful" is checked against a 256-entry list of recent prefetches.
+- The correlations use only 12 mixed mixes.
+
