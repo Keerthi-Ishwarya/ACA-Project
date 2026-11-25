@@ -2912,6 +2912,20 @@ if((cache_type == IS_L1I || cache_type == IS_L1D) && reads_ready.size() == 0)
             if (block[set][way].prefetch && (block[set][way].used == 0))
                 pf_useless++;
 
+            // Checkpoint 2: Count LLC cross-core and same-core evictions
+            if (cache_type == IS_LLC && block[set][way].valid) {
+                uint32_t victim_cpu = block[set][way].cpu;
+                uint32_t filler_cpu = packet->cpu;
+                if (filler_cpu < NUM_CPUS && victim_cpu < NUM_CPUS) {
+                    llc_total_evictions[filler_cpu]++;
+                    if (victim_cpu == filler_cpu) {
+                        llc_same_core_evictions[filler_cpu]++;
+                    } else {
+                        llc_cross_core_evictions[filler_cpu][victim_cpu]++;
+                    }
+                }
+            }
+
             if (block[set][way].valid == 0)
                 block[set][way].valid = 1;
             block[set][way].dirty = 0;

@@ -52,6 +52,8 @@ int spp_issued_prefetches[NUM_CPUS] ={0};
 int spp_useful_prefetches[NUM_CPUS] ={0};
 int spp_total_demand_accesses[NUM_CPUS]={0};
 int spp_current_degree[NUM_CPUS]={1};
+uint64_t spp_roi_demands[NUM_CPUS] = {0};
+uint64_t spp_roi_prefetches[NUM_CPUS] = {0};
 
 void CACHE::l1d_prefetcher_initialize() 
 {
@@ -75,6 +77,7 @@ void CACHE::l1d_prefetcher_initialize()
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint8_t critical_ip_flag)
 {
    uint64_t cl_addr = addr >> LOG2_BLOCK_SIZE;
+    if (all_warmup_complete > NUM_CPUS) spp_roi_demands[cpu]++;
 
    //check if current demand access hits a recently issued prefetch
     for(int i=0; i<RECENT_PREFETCH_SIZE; i++){
@@ -170,6 +173,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
                 prefetch_line(ip, addr, pf_address, FILL_L2, 0);
             
             spp_issued_prefetches[cpu]++;
+            if (all_warmup_complete > NUM_CPUS) spp_roi_prefetches[cpu]++;
             recent_prefetches[cpu][recent_prefetch_idx[cpu]] = curr_pf_cl;
             recent_prefetch_idx[cpu] = (recent_prefetch_idx[cpu] + 1) % RECENT_PREFETCH_SIZE;
         }
@@ -197,6 +201,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
                 prefetch_line(ip, addr, pf_address, FILL_L2, 0);
                 
             spp_issued_prefetches[cpu]++;
+            if (all_warmup_complete > NUM_CPUS) spp_roi_prefetches[cpu]++;
             recent_prefetches[cpu][recent_prefetch_idx[cpu]] = curr_pf_cl;
             recent_prefetch_idx[cpu] = (recent_prefetch_idx[cpu] + 1) % RECENT_PREFETCH_SIZE;
             
@@ -228,5 +233,9 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t v_addr, uint64_t addr, uint32_t s
 
 void CACHE::l1d_prefetcher_final_stats()
 {
-    std::cout<<"CPU " << cpu << "SPP Final Stats: Degree=" << spp_current_degree[cpu]<<std::endl;
+    double pf_frac = (spp_roi_demands[cpu] + spp_roi_prefetches[cpu] > 0) ? ((double)spp_roi_prefetches[cpu] / (spp_roi_demands[cpu] + spp_roi_prefetches[cpu])) : 0.0;
+    std::cout << "CPU " << cpu << " SPP Final Stats: Degree=" << spp_current_degree[cpu]
+              << " Demands=" << spp_roi_demands[cpu]
+              << " Prefetches=" << spp_roi_prefetches[cpu]
+              << " Prefetch_Fraction=" << pf_frac << std::endl;
 }

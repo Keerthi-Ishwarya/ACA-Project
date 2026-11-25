@@ -407,6 +407,26 @@ void print_dram_stats()
         cout << " AVG_CONGESTED_CYCLE: -" << endl;
 
     uncore.DRAM.print_DRAM_busy_stats();
+
+    // Checkpoint 2: Per-Core DRAM Statistics
+    cout << endl << "Per-Core DRAM Statistics:" << endl;
+    for (uint32_t i=0; i<NUM_CPUS; i++) {
+        uint64_t total_rq = uncore.DRAM.dram_rq_requests[i];
+        uint64_t total_wq = uncore.DRAM.dram_wq_requests[i];
+        uint64_t total = total_rq + total_wq;
+        uint64_t demands = uncore.DRAM.dram_rq_loads[i] + uncore.DRAM.dram_rq_rfos[i];
+        uint64_t prefetches = uncore.DRAM.dram_rq_prefetches[i];
+        double pf_fraction = (demands + prefetches > 0) ? ((double)prefetches / (demands + prefetches)) : 0.0;
+
+        cout << "CPU " << i << " DRAM Requests: TOTAL: " << setw(10) << total
+             << " READS: " << setw(10) << total_rq
+             << " (LOAD: " << setw(10) << uncore.DRAM.dram_rq_loads[i]
+             << ", RFO: " << setw(10) << uncore.DRAM.dram_rq_rfos[i]
+             << ", PREFETCH: " << setw(10) << prefetches
+             << ", TRANSLATION: " << setw(10) << uncore.DRAM.dram_rq_translations[i] << ")"
+             << " WRITES: " << setw(10) << total_wq
+             << " DRAM_PREF_FRACTION: " << fixed << setprecision(4) << pf_fraction << dec << endl;
+    }
 }
 
 void reset_cache_stats(uint32_t cpu, CACHE *cache)
@@ -469,6 +489,12 @@ void reset_cache_stats(uint32_t cpu, CACHE *cache)
     cache->instr_evicting_instr = 0;                    
     cache->transl_evicting_transl = 0;
 
+    // Checkpoint 2: reset LLC eviction counters
+    cache->llc_same_core_evictions[cpu] = 0;
+    cache->llc_total_evictions[cpu] = 0;
+    for (uint32_t j=0; j<NUM_CPUS; j++) {
+        cache->llc_cross_core_evictions[cpu][j] = 0;
+    }
 
     cache->PQ.ACCESS = 0;
     cache->PQ.MERGED = 0;
@@ -543,6 +569,7 @@ void finish_warmup()
     cout << endl;
 
     // reset DRAM stats
+    uncore.DRAM.reset_stats();
     for (uint32_t i=0; i<DRAM_CHANNELS; i++) {
         uncore.DRAM.RQ[i].ROW_BUFFER_HIT = 0;
         uncore.DRAM.RQ[i].ROW_BUFFER_MISS = 0;
@@ -1819,6 +1846,29 @@ int main(int argc, char** argv)
     }
 
     uncore.LLC.llc_prefetcher_final_stats();
+
+    // Checkpoint 2: LLC Eviction Statistics
+    cout << endl << "LLC Eviction Statistics:" << endl;
+    for (uint32_t i=0; i<NUM_CPUS; i++) {
+        uint64_t cross_caused = 0;
+        uint64_t cross_suffered = 0;
+        for (uint32_t j=0; j<NUM_CPUS; j++) {
+            if (i != j) {
+                cross_caused += uncore.LLC.llc_cross_core_evictions[i][j];
+                cross_suffered += uncore.LLC.llc_cross_core_evictions[j][i];
+            }
+        }
+        cout << "CPU " << i << " LLC Evictions: TOTAL: " << setw(10) << uncore.LLC.llc_total_evictions[i]
+             << " SAME_CORE: " << setw(10) << uncore.LLC.llc_same_core_evictions[i]
+             << " CROSS_CORE_CAUSED: " << setw(10) << cross_caused
+             << " CROSS_CORE_SUFFERED: " << setw(10) << cross_suffered << endl;
+    }
+    cout << "LLC Cross-Core Evictions Matrix [Aggressor -> Victim]:" << endl;
+    for (uint32_t i=0; i<NUM_CPUS; i++) {
+        for (uint32_t j=0; j<NUM_CPUS; j++) {
+            cout << "  CPU " << i << " -> CPU " << j << ": " << uncore.LLC.llc_cross_core_evictions[i][j] << endl;
+        }
+    }
 
 #ifdef SANITY_CHECK
 	for(uint32_t i = 0; i < NUM_CPUS; i++)

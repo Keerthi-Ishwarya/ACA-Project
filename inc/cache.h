@@ -181,6 +181,11 @@ class CACHE : public MEMORY {
              roi_miss[NUM_CPUS][NUM_TYPES],
 	     roi_instr_miss[NUM_CPUS][NUM_TYPES];
 
+    // Checkpoint 2: LLC eviction counters
+    uint64_t llc_cross_core_evictions[NUM_CPUS][NUM_CPUS]; // [filler_cpu][victim_cpu]
+    uint64_t llc_same_core_evictions[NUM_CPUS];
+    uint64_t llc_total_evictions[NUM_CPUS];
+
     uint64_t total_miss_latency;
     
     // constructor
@@ -212,6 +217,12 @@ class CACHE : public MEMORY {
                 roi_hit[i][j] = 0;
                 roi_miss[i][j] = 0;
 		roi_instr_miss[i][j] = 0;
+            }
+
+            llc_same_core_evictions[i] = 0;
+            llc_total_evictions[i] = 0;
+            for (uint32_t j=0; j<NUM_CPUS; j++) {
+                llc_cross_core_evictions[i][j] = 0;
             }
         }
 
