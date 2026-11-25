@@ -1,8 +1,6 @@
 #!/bin/bash
-# Usage: bash run2.sh [parallel_jobs] [setups...]     e.g.  bash run2.sh 4 baseline spp_fixed spp spp_bandpass
-# Reads traces.txt (label path) and mixes2.txt (four labels per line).
-# Writes results_ckpt2/alone_<setup>_<label>.txt and results_ckpt2/mix<k>_<setup>.txt.
-# Safe to run again: finished runs with counters are skipped. Set FORCE=1 to rerun all.
+# Usage: bash run2.sh [parallel_jobs] [setups...]     eg..  bash run2.sh 4 baseline spp_fixed spp spp_bandpass
+
 P=${1:-4}; shift
 SETUPS=${*:-baseline spp_fixed spp spp_bandpass}
 W=${W:-10000000}; S=${S:-10000000}
